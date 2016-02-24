@@ -2,7 +2,7 @@ public abstract class CellMetadata {
     private String errorText;
 
     public boolean hasError() {
-        return errorText == null;
+        return errorText != null;
     }
 
     public String getErrorText() {

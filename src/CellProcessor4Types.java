@@ -51,6 +51,10 @@ public class CellProcessor4Types extends CellProcessor {
             super((CellProcessor) cellProcessor);
         }
 
+        public void processCellData(SpreadsheetCell cell) {
+            cell.setMetadata((CellMetadata)new CellMetadataNull());
+        }
+
         public String getCellComputedData(SpreadsheetCell cell) {
             return "";
         }
@@ -59,6 +63,10 @@ public class CellProcessor4Types extends CellProcessor {
     private class FourTypesTextProcessor extends DataTypeProcessor {
         public FourTypesTextProcessor(CellProcessor cellProcessor) {
             super((CellProcessor) cellProcessor);
+        }
+
+        public void processCellData(SpreadsheetCell cell) {
+            cell.setMetadata((CellMetadata)new CellMetadataText());
         }
 
         public String getCellComputedData(SpreadsheetCell cell) {
@@ -72,6 +80,7 @@ public class CellProcessor4Types extends CellProcessor {
         }
 
         public void processCellData(SpreadsheetCell cell) {
+            cell.setMetadata((CellMetadata)new CellMetadataNumber());
             if (!isValidData(cell.getData())) {
                 cell.getMetadata().setErrorText("invalid number format");
             }

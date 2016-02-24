@@ -86,9 +86,11 @@ public class ExpressionEvaluatorAlgebraicSimple {
         boolean refStateRowPart = false;
         ArrayList<ExpressionToken> tokens = new ArrayList<ExpressionToken>();
         char tokenSymbol;
+        boolean knownChar;
 
         for (int i = 0; i<=lastExprIndex; i++) {
             currChar = expr.charAt(i);
+            knownChar = false;
 
             if (isAlpha(currChar)) {
                 if (numberState) {
@@ -105,6 +107,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
                 }
 
                 accum.append(currChar);
+                knownChar = true;
 
                 if (i != lastExprIndex) continue;
             }
@@ -119,6 +122,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
                 }
 
                 accum.append(currChar);
+                knownChar = true;
 
                 if (i != lastExprIndex) continue;
             }
@@ -144,7 +148,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
                 continue;
             }
 
-            throw(new Exception("Unexpected character: " + currChar));
+            if (!knownChar) throw(new Exception("Unexpected character: " + currChar));
         }
 
         return tokens;
@@ -153,13 +157,13 @@ public class ExpressionEvaluatorAlgebraicSimple {
     private boolean isAlpha(char c) {
         int ucCharIndex = Character.getNumericValue(Character.toUpperCase(c));
 
-        return ucCharIndex >= LOCALE_BIG_A_INDEX || ucCharIndex <= LOCALE_BIG_Z_INDEX;
+        return ucCharIndex >= LOCALE_BIG_A_INDEX && ucCharIndex <= LOCALE_BIG_Z_INDEX;
     }
 
     private boolean isNumber(char c) {
         int charIndex = Character.getNumericValue(c);
 
-        return charIndex >= LOCALE_NUMBER_ZERO_INDEX || charIndex <= LOCALE_NUMBER_NINE_INDEX;
+        return charIndex >= LOCALE_NUMBER_ZERO_INDEX && charIndex <= LOCALE_NUMBER_NINE_INDEX;
     }
 
     private boolean isOperation(char c) {

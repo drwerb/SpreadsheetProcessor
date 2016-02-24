@@ -1,0 +1,2 @@
+class CellMetadataNull extends CellMetadata {
+}
