@@ -2,10 +2,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Stack;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 class CellDependancyManager {
     protected DependancyGraph graph;
-    Stack<String> reverseOrderVertexes;
+    ConcurrentLinkedQueue<String> reverseOrderVertexes;
     HashSet<String> evaluatedReferences;
 
     public CellDependancyManager() {
@@ -31,7 +32,7 @@ class CellDependancyManager {
         int processingStackHeight = 0;
         boolean markBlack;
 
-        reverseOrderVertexes = new Stack<String>();
+        reverseOrderVertexes = new ConcurrentLinkedQueue<String>();
 
         for (String vertexName: graph.getAllVertexNames()) {
             processingVertexes.push(vertexName);
@@ -53,12 +54,14 @@ class CellDependancyManager {
                 }
 
                 if (processingVertex.color == GraphVertex.V_COLOR_BLACK) {
+                	processingVertexes.pop();
+                    processingStackHeight--;
                     continue;
                 }
                 
                 if (processingVertex.nextVertexes.isEmpty() || markBlack) {
                     processingVertex.color = GraphVertex.V_COLOR_BLACK;
-                    reverseOrderVertexes.push(processingVertexes.pop());
+                    reverseOrderVertexes.add(processingVertexes.pop());
                     processingStackHeight--;
                     continue;
                 }
@@ -79,18 +82,21 @@ class CellDependancyManager {
     }
 
     public void markReferenceAsEvaluated(String evaluatedReference) {
-        if (reverseOrderVertexes.peek() == evaluatedReference) reverseOrderVertexes.pop();
+        if (reverseOrderVertexes.peek() == evaluatedReference) reverseOrderVertexes.poll();
         evaluatedReferences.add(evaluatedReference);
     }
 
     public void evaluateDependenciesBy(String targetReference, Spreadsheet spreadsheet) {
         int[] indexes;
+        String evaluatedReference;
 
         if (isCellEvaluatedByReference(targetReference)) return;
 
-        while (!reverseOrderVertexes.empty() && reverseOrderVertexes.peek() != targetReference) {
-            indexes = CellInfoUtils.converNumericFormToRowCol(reverseOrderVertexes.peek());
+        while (!reverseOrderVertexes.isEmpty() && reverseOrderVertexes.peek().equals(targetReference)) {
+        	evaluatedReference = reverseOrderVertexes.peek();
+            indexes = CellInfoUtils.converNumericFormToRowCol(evaluatedReference);
             String resultBuffer = spreadsheet.getCellComputedData(indexes[0], indexes[1]);
+            markReferenceAsEvaluated(evaluatedReference);
         }
     }
 
