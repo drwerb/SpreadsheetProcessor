@@ -32,7 +32,7 @@ public abstract class Spreadsheet {
         return getComputedDataByProcessor(cell);
     }
 
-    public String getComputeDataByProcessor(SpreadsheetCell cell) {
+    public String getComputedDataByProcessor(SpreadsheetCell cell) {
         return cellProcessor.getCellComputedData(cell);
     }
 

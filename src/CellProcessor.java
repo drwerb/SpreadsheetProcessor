@@ -40,7 +40,7 @@ public abstract class CellProcessor {
     }
 
     protected abstract class DataTypeProcessor {
-        private CellProcessor cellProcessor;
+        protected CellProcessor cellProcessor;
 
         public DataTypeProcessor(CellProcessor c) {
             cellProcessor = c;
@@ -54,7 +54,7 @@ public abstract class CellProcessor {
     }
 
     protected class CellProcessorWalker extends SpreadsheetRowByRowCellWalker {
-        CellProcessor processor;
+        protected CellProcessor processor;
 
         public CellProcessorWalker(CellProcessor cellProcessor) {
             super(cellProcessor.getSpreadsheet());

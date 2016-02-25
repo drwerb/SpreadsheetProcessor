@@ -6,7 +6,7 @@ class SpreadsheetReaderFile implements SpreadsheetReader {
     private static String cellDelimeter = "\t";
 
     public void readAndFillSpreadsheet(Spreadsheet spreadsheet) {
-	try (Scanner scanner = new Scanner(new File("src/03_from_assignment_test.table")).useDelimiter("\n")) {
+	try (Scanner scanner = new Scanner(new File("src/01_simple_test.table")).useDelimiter("\n")) {
             int rowIndex = -1;
             int columnIndex = -1;
     

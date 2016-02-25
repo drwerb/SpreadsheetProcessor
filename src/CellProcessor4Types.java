@@ -22,7 +22,9 @@ public class CellProcessor4Types extends CellProcessor {
         cellDependancyManager = new CellDependancyManager();
     }
 
-    public void computeDependantData() {}
+    public void computeDependantData() {
+	cellDependancyManager.makeTopologicalSort();
+    }
 
     public DataTypeProcessor selectDataType(SpreadsheetCell cell) {
         char firstChar;
@@ -45,7 +47,7 @@ public class CellProcessor4Types extends CellProcessor {
 
         return selectedProcessor;
     }
-
+    
     private class FourTypesNullProcessor extends DataTypeProcessor {
         public FourTypesNullProcessor(CellProcessor cellProcessor) {
             super((CellProcessor) cellProcessor);
@@ -104,8 +106,8 @@ public class CellProcessor4Types extends CellProcessor {
     }
 
     private class FourTypesExpressionProcessor extends DataTypeProcessor {
-        public FourTypesExpressionProcessor(CellProcessor cellProcessor) {
-            super((CellProcessor) cellProcessor);
+        public FourTypesExpressionProcessor(CellProcessor cp) {
+            super((CellProcessor) cp);
         }
 
         public void processCellData(SpreadsheetCell cell, int rowIndex, int columnIndex) {
@@ -132,13 +134,13 @@ public class CellProcessor4Types extends CellProcessor {
 
             CellDependancyManager cellDependancyManager = cellProcessor.getCellDependancyManager();
 
-            if (cellDependancyManager.isCellEvaluatedByReference(cellMeta.numericReference)) {
+            if (cellDependancyManager.isCellEvaluatedByReference(meta.numericReference)) {
                 evaluatedValue = meta.evaluatedValue;
             }
             else {
                 evaluatedValue = meta.evaluator.evaluate((Spreadsheet)spreadsheet);
                 meta.evaluatedValue = evaluatedValue;
-                cellDependancyManager.markReferenceAsEvaluated(cellMeta.numericReference);
+                cellDependancyManager.markReferenceAsEvaluated(meta.numericReference);
             }
 
             return String.valueOf(evaluatedValue);

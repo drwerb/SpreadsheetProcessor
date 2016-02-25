@@ -37,8 +37,8 @@ public class CellInfoUtils {
     }
 
     public static String convertReferenceToNumericForm(String reference) {
-        int rowIndex = CellInfoUtils.getReferencedRowIndex(),
-        int columnIndex = CellInfoUtils.getReferencedColumnIndex()
+        int rowIndex = CellInfoUtils.getReferencedRowIndex(reference);
+        int columnIndex = CellInfoUtils.getReferencedColumnIndex(reference);
 
         return getCellNumericReference(rowIndex, columnIndex);
     }
@@ -49,10 +49,7 @@ public class CellInfoUtils {
 
     public static int[] converNumericFormToRowCol(String numericReference) {
         String[] splittedRowCol = numericReference.split("_");
-        int [2] result;
-
-        result[0] = Integer.parseInt(splittedRowCol[0]);
-        result[1] = Integer.parseInt(splittedRowCol[1]);
+        int [] result = {Integer.parseInt(splittedRowCol[0]), Integer.parseInt(splittedRowCol[1]) };
 
         return result;
     }

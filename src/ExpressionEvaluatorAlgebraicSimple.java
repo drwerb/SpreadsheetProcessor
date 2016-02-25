@@ -38,25 +38,27 @@ public class ExpressionEvaluatorAlgebraicSimple {
     public void buildAst(ArrayList<ExpressionToken> tokens) throws Exception {
         CellExpression tmpCellExprOperand;
         ExpressionToken token;
+        
+        ArrayList<ExpressionToken> tokensCopy = (ArrayList<ExpressionToken>) tokens.clone();
 
-        while (!tokens.isEmpty()) {
-            token = tokens.remove(0);
+        while (!tokensCopy.isEmpty()) {
+            token = tokensCopy.remove(0);
 
             switch (token.symbol) {
                 case TOKEN_SYMBOL_DIV:
-                    tmpCellExprOperand = createEpressionOperand(tokens.remove(0));
+                    tmpCellExprOperand = createEpressionOperand(tokensCopy.remove(0));
                     ast = new CellExpressionDiv(ast, tmpCellExprOperand);
                     break;
                 case TOKEN_SYMBOL_SUM:
-                    tmpCellExprOperand = createEpressionOperand(tokens.remove(0));
+                    tmpCellExprOperand = createEpressionOperand(tokensCopy.remove(0));
                     ast = new CellExpressionSum(ast, tmpCellExprOperand);
                     break;
                 case TOKEN_SYMBOL_SUB:
-                    tmpCellExprOperand = createEpressionOperand(tokens.remove(0));
+                    tmpCellExprOperand = createEpressionOperand(tokensCopy.remove(0));
                     ast = new CellExpressionSub(ast, tmpCellExprOperand);
                     break;
                 case TOKEN_SYMBOL_MUL:
-                    tmpCellExprOperand = createEpressionOperand(tokens.remove(0));
+                    tmpCellExprOperand = createEpressionOperand(tokensCopy.remove(0));
                     ast = new CellExpressionMul(ast, tmpCellExprOperand);
                     break;
                 default:

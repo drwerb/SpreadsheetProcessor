@@ -29,6 +29,7 @@ class CellDependancyManager {
         Stack<String> processingVertexes = new Stack<String>();
         GraphVertex processingVertex;
         int processingStackHeight = 0;
+        boolean markBlack;
 
         reverseOrderVertexes = new Stack<String>();
 
@@ -38,22 +39,27 @@ class CellDependancyManager {
 
             while (!processingVertexes.empty()) {
                 processingVertex = graph.getVertex(processingVertexes.peek());
+                markBlack = false;
 
                 if (processingVertex.color == GraphVertex.V_COLOR_GRAY) {
 
                     if (processingVertex.stackPos == processingStackHeight) {
-                        processingVertex.color = GraphVertex.V_COLOR_BLACK;
-                        reverseOrderVertexes.push(processingVertexes.pop());
-                        processingStackHeight--;
-                        continue;
+                	markBlack = true;
                     }
-
-                    graph.isCycled = true;
-
-                    return;
+                    else {
+                	graph.isCycled = true;
+                	return;
+                    }
                 }
 
                 if (processingVertex.color == GraphVertex.V_COLOR_BLACK) {
+                    continue;
+                }
+                
+                if (processingVertex.nextVertexes.isEmpty() || markBlack) {
+                    processingVertex.color = GraphVertex.V_COLOR_BLACK;
+                    reverseOrderVertexes.push(processingVertexes.pop());
+                    processingStackHeight--;
                     continue;
                 }
 
@@ -68,7 +74,7 @@ class CellDependancyManager {
         }
     }
 
-    public void isCellEvaluatedByReference(String cellReference) {
+    public boolean isCellEvaluatedByReference(String cellReference) {
         return evaluatedReferences.contains(cellReference);
     }
 
@@ -80,9 +86,9 @@ class CellDependancyManager {
     public void evaluateDependenciesBy(String targetReference, Spreadsheet spreadsheet) {
         int[] indexes;
 
-        if (isCellEvaluatedByReference(expressionHolderReference)) return;
+        if (isCellEvaluatedByReference(targetReference)) return;
 
-        while (reverseOrderVertexes.peek() != expressionHolderReference) {
+        while (!reverseOrderVertexes.empty() && reverseOrderVertexes.peek() != targetReference) {
             indexes = CellInfoUtils.converNumericFormToRowCol(reverseOrderVertexes.peek());
             String resultBuffer = spreadsheet.getCellComputedData(indexes[0], indexes[1]);
         }
@@ -113,11 +119,10 @@ class CellDependancyManager {
             vertexes.put(name, new GraphVertex(name));
         }
 
-        public void addEdge(String vertexNameFrom, String vertexNameto) {
+        public void addEdge(String vertexNameFrom, String vertexNameTo) {
             GraphVertex vertexFrom = vertexes.get(vertexNameFrom);
-            GraphVertex vertexTo = vertexes.get(vertexNameTo);
 
-            vertexFrom.addNextVertex(vertexTo);
+            vertexFrom.addNextVertex(vertexNameTo);
         }
     }
 
@@ -137,8 +142,8 @@ class CellDependancyManager {
             color = V_COLOR_WHITE;
         }
 
-        public addNextVertex(String nextVertexName) {
-            nextVertexes.append(nextVertexName);
+        public void addNextVertex(String nextVertexName) {
+            nextVertexes.add(nextVertexName);
         }
     }
 }
