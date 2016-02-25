@@ -31,7 +31,7 @@ public abstract class CellProcessor {
     public void processCell(int rowIndex, int columnIndex) {
         SpreadsheetCell cell = spreadsheet.getCell(rowIndex, columnIndex);
         DataTypeProcessor dataTypeProcessor = selectDataType(cell);
-        dataTypeProcessor.processCellData(cell);
+        dataTypeProcessor.processCellData(cell, rowIndex, columnIndex);
     }
 
     public String getCellComputedData(SpreadsheetCell cell) {
@@ -46,7 +46,7 @@ public abstract class CellProcessor {
             cellProcessor = c;
         }
 
-        public void processCellData(SpreadsheetCell cell) {
+        public void processCellData(SpreadsheetCell cell, int rowIndex, int columnIndex) {
             // method does nothing by default
         }
 

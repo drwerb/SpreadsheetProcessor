@@ -12,11 +12,7 @@ class CellCollectionHashMap implements CellCollection {
     }
 
     public SpreadsheetCell getCell(int rowIndex, int columnIndex) {
-        return cells.get(getCellKey(rowIndex, columnIndex));
-    }
-
-    private String getCellKey(int rowIndex, int columnIndex) {
-        return Integer.toString(rowIndex) + "_" + Integer.toString(columnIndex);
+        return cells.get(CellInfoUtils.getCellNumericReference(rowIndex, columnIndex));
     }
 
     public int getRowsCount() {
@@ -28,7 +24,7 @@ class CellCollectionHashMap implements CellCollection {
     }
 
     public void putCellData(int rowIndex, int columnIndex, String cellData) {
-        String key = getCellKey(rowIndex, columnIndex);
+        String key = CellInfoUtils.getCellNumericReference(rowIndex, columnIndex);
         SpreadsheetCell cell = cells.get(key);
 
         if (cell == null) {

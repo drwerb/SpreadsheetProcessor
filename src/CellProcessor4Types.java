@@ -51,7 +51,7 @@ public class CellProcessor4Types extends CellProcessor {
             super((CellProcessor) cellProcessor);
         }
 
-        public void processCellData(SpreadsheetCell cell) {
+        public void processCellData(SpreadsheetCell cell, int rowIndex, int columnIndex) {
             cell.setMetadata((CellMetadata)new CellMetadataNull());
         }
 
@@ -65,7 +65,7 @@ public class CellProcessor4Types extends CellProcessor {
             super((CellProcessor) cellProcessor);
         }
 
-        public void processCellData(SpreadsheetCell cell) {
+        public void processCellData(SpreadsheetCell cell, int rowIndex, int columnIndex) {
             cell.setMetadata((CellMetadata)new CellMetadataText());
         }
 
@@ -79,7 +79,7 @@ public class CellProcessor4Types extends CellProcessor {
             super((CellProcessor) cellProcessor);
         }
 
-        public void processCellData(SpreadsheetCell cell) {
+        public void processCellData(SpreadsheetCell cell, int rowIndex, int columnIndex) {
             cell.setMetadata((CellMetadata)new CellMetadataNumber());
             if (!isValidData(cell.getData())) {
                 cell.getMetadata().setErrorText("invalid number format");
@@ -108,9 +108,10 @@ public class CellProcessor4Types extends CellProcessor {
             super((CellProcessor) cellProcessor);
         }
 
-        public void processCellData(SpreadsheetCell cell) {
+        public void processCellData(SpreadsheetCell cell, int rowIndex, int columnIndex) {
             CellMetadataExpression cellMeta = new CellMetadataExpression();
-            cellMeta.evaluator = new ExpressionEvaluatorAlgebraicSimple();
+            cellMeta.numericReference = CellInfoUtils.getCellNumericReference(rowIndex, columnIndex);
+            cellMeta.evaluator = new ExpressionEvaluatorAlgebraicSimple(cellProcessor.getCellDependancyManager(), cellMeta.numericReference);
             try {
                 cellMeta.evaluator.process(cell.getData().substring(1));
             }
@@ -123,15 +124,30 @@ public class CellProcessor4Types extends CellProcessor {
         public String getCellComputedData(SpreadsheetCell cell) {
             CellMetadataExpression meta = (CellMetadataExpression)cell.getMetadata();
 
+            double evaluatedValue;
+
             if (meta.hasError()) {
                 return "#" + meta.getErrorText();
             }
 
-            return String.valueOf(meta.evaluator.evaluate((Spreadsheet)spreadsheet));
+            CellDependancyManager cellDependancyManager = cellProcessor.getCellDependancyManager();
+
+            if (cellDependancyManager.isCellEvaluatedByReference(cellMeta.numericReference)) {
+                evaluatedValue = meta.evaluatedValue;
+            }
+            else {
+                evaluatedValue = meta.evaluator.evaluate((Spreadsheet)spreadsheet);
+                meta.evaluatedValue = evaluatedValue;
+                cellDependancyManager.markReferenceAsEvaluated(cellMeta.numericReference);
+            }
+
+            return String.valueOf(evaluatedValue);
         }
 
         private class CellMetadataExpression extends CellMetadata {
             public ExpressionEvaluatorAlgebraicSimple evaluator;
+            public double evaluatedValue;
+            public String numericReference;
         }
     }
 }

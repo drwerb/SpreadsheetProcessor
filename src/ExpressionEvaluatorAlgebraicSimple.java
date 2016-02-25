@@ -16,17 +16,23 @@ public class ExpressionEvaluatorAlgebraicSimple {
     private static final int LOCALE_NUMBER_NINE_INDEX = Character.getNumericValue('9');
 
     private CellExpression ast = null;
+    private CellDependancyManager dependancyManager;
+    private String expressionHolderReference;
 
-    public ExpressionEvaluatorAlgebraicSimple() {}
+    public ExpressionEvaluatorAlgebraicSimple(CellDependancyManager depMngr, String expressionHolderRef) {
+        dependancyManager = depMngr;
+        expressionHolderReference = expressionHolderRef;
+    }
 
     public double evaluate(Spreadsheet spreadsheet) {
+        dependancyManager.evaluateDependenciesBy(expressionHolderReference, spreadsheet);
         return ast.evaluate(spreadsheet);
     }
 
     public void process(String expr) throws Exception {
         ArrayList<ExpressionToken> tokens = splitTokens(expr);
-        //registerDependencies(tokens);
         buildAst(tokens);
+        registerDependencies(tokens);
     }
 
     public void buildAst(ArrayList<ExpressionToken> tokens) throws Exception {
@@ -56,6 +62,14 @@ public class ExpressionEvaluatorAlgebraicSimple {
                 default:
                     ast = createEpressionOperand(token);
                     break;
+            }
+        }
+    }
+
+    public void registerDependencies(ArrayList<ExpressionToken> tokens) {
+        for (ExpressionToken token : tokens) {
+            if (token.symbol == TOKEN_SYMBOL_REF) {
+                dependancyManager.addDependancy(expressionHolderReference, CellInfoUtils.convertReferenceToNumericForm(token.content));
             }
         }
     }

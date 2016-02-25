@@ -29,6 +29,10 @@ public abstract class Spreadsheet {
             return null;
         }
 
+        return getComputedDataByProcessor(cell);
+    }
+
+    public String getComputeDataByProcessor(SpreadsheetCell cell) {
         return cellProcessor.getCellComputedData(cell);
     }
 
