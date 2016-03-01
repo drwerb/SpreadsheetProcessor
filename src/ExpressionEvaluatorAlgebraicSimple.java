@@ -1,6 +1,8 @@
 import java.lang.StringBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 public class ExpressionEvaluatorAlgebraicSimple {
     private static final char TOKEN_SYMBOL_NUMBER = 'N';
@@ -9,6 +11,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
     private static final char TOKEN_SYMBOL_SUB = '-';
     private static final char TOKEN_SYMBOL_MUL = '*';
     private static final char TOKEN_SYMBOL_DIV = '/';
+    private static final char TOKEN_SYMBOL_NULL = '0';
 
     private static final int LOCALE_BIG_A_INDEX = Character.getNumericValue('A');
     private static final int LOCALE_BIG_Z_INDEX = Character.getNumericValue('Z');
@@ -98,104 +101,172 @@ public class ExpressionEvaluatorAlgebraicSimple {
 
     private ArrayList<ExpressionToken> splitTokens(String expr) throws Exception {
         int lastExprIndex = expr.length() - 1;
-        StringBuilder accum = new StringBuilder("");
-        char currChar;
-        boolean numberState = false;
-        boolean refState = false;
-        boolean refStateRowPart = false;
         ArrayList<ExpressionToken> tokens = new ArrayList<ExpressionToken>();
-        char tokenSymbol;
-        boolean knownChar;
+
+        TokenParseState tokenParseState = new TokenParseState();
 
         for (int i = 0; i<=lastExprIndex; i++) {
-            currChar = expr.charAt(i);
-            knownChar = false;
-
-            if (isAlpha(currChar)) {
-                if (numberState) {
-                    throw(new Exception("Number expected"));
-                }
-
-                if (refState && !refStateRowPart) {
-                    throw(new Exception("Row column incorrect format: number expected"));
-                }
-
-                if (!refState) {
-                    refState = true;
-                    refStateRowPart = true;
-                }
-
-                accum.append(currChar);
-                knownChar = true;
-
-                if (i != lastExprIndex) continue;
-            }
-
-            if (isNumber(currChar)) {
-                if (!numberState && !refState) {
-                    numberState = true;
-                }
-
-                if (refState && refStateRowPart) {
-                    refStateRowPart = false;
-                }
-
-                accum.append(currChar);
-                knownChar = true;
-
-                if (i != lastExprIndex) continue;
-            }
-
-            if (accum.length() == 0) {
-                throw(new Exception("Operand expected"));
-            }
-
-            if (numberState) {
-                tokenSymbol = TOKEN_SYMBOL_NUMBER;
-            }
-            else {
-                tokenSymbol = TOKEN_SYMBOL_REF;
-            }
-
-            tokens.add(new ExpressionToken(tokenSymbol, accum.toString()));
-            accum = new StringBuilder("");
-            numberState = false;
-            refState = false;
-
-            if (isOperation(currChar)) {
-                tokens.add(new ExpressionToken(currChar, String.valueOf(currChar)));
-                continue;
-            }
-
-            if (!knownChar) throw(new Exception("Unexpected character: " + currChar));
+            tokenParseState.processChar(expr.charAt(i));
+            
+            while (tokenParseState.isTokenReady()) {
+                tokens.add(tokenParseState.popToken());
+            }            
         }
-
+        
+        // accumulated data post-processing
+        if (tokenParseState.isTokenReady()) {
+            tokens.add(tokenParseState.popToken());
+        }
+        
+        if (!tokenParseState.isProperlyFinalized()) {
+            throw new Exception("unexpected epression ending");
+        }
+        
         return tokens;
     }
 
-    private boolean isAlpha(char c) {
-        int ucCharIndex = Character.getNumericValue(Character.toUpperCase(c));
+    
+    class TokenParseState {
+        StringBuilder accum;
+        boolean isOperandExpected = true;
+        boolean isOperandExpectedPositiveOnly = false;
+        boolean doOperandNegation = false;
+        boolean isAccumFlushed = false;
+        char operationChar;
+        
+        public TokenParseState() {
+            isAccumFlushed = true;
+            isOperandExpected = true;
+            isOperandExpectedPositiveOnly = false;
+            doOperandNegation = false;
+            operationChar = TOKEN_SYMBOL_NULL;
+        }
+        
+        public void appendChar(char currChar) throws Exception {
+            if (isOperation(currChar)) {
+                processOperation(currChar);
+            }
+            else {
+                processChar(currChar);
+            }
+        }
+        
+        public void processChar(char currChar) throws Exception {
+            if (isAccumFlushed) {
+                accum = new StringBuilder("");
+                isAccumFlushed = false;
+            }
+            
+            accum.append(currChar);
+        }
 
-        return ucCharIndex >= LOCALE_BIG_A_INDEX && ucCharIndex <= LOCALE_BIG_Z_INDEX;
-    }
+        public void processOperation(char currChar) throws Exception {
+            if (currChar == '-' && isOperandExpectedPositiveOnly && isAccumFlushed ) {
+                throw new Exception("unexpected 'minus'");
+            }
+            
+            if (currChar == '-' && isOperandExpected && isAccumFlushed) {
+                doOperandNegation = true;
+                isOperandExpectedPositiveOnly = true;
+            }
+            else {
+                if (operationChar != TOKEN_SYMBOL_NULL) {
+                    throw new Exception("unexpected operator");
+                }
+                
+                operationChar = currChar;
+                isOperandExpected = true;
+                
+                if (currChar == '+' || currChar == '-') {
+                    isOperandExpectedPositiveOnly = true;
+                }
+            }
+        }
+        
+        public boolean isTokenReady() {
+             return isAccumedLastOperand() || isAccumedOperandBeforeOperation() || isOperationSymbolUnpoped();
+        }
+        
+        private boolean isAccumedLastOperand() {
+            return !isAccumFlushed && accum.length() != 0 && !isOperandExpected;
+        }
+        
+        private boolean isAccumedOperandBeforeOperation() {
+            return !isAccumFlushed && accum.length() != 0 && operationChar != TOKEN_SYMBOL_NULL;
+        }
+        
+        private boolean isOperationSymbolUnpoped() {
+            return isAccumFlushed && operationChar != TOKEN_SYMBOL_NULL;
+        }
+        
+        public ExpressionToken popToken() throws Exception {
+            if (!isAccumFlushed) {
+                return popOperandToken();
+            }
+            
+            return popOperationToken();
+        }
+        
+        public ExpressionToken popOperandToken() throws Exception {
+            String accumulatedOperand = accum.toString();
+            char tokenSymbol;
+            
+            if (isDigit(accumulatedOperand)) {
+                tokenSymbol = TOKEN_SYMBOL_NUMBER;
+            }
+            else if (isReference(accumulatedOperand)) {
+                tokenSymbol = TOKEN_SYMBOL_REF;
+            }
+            else {
+                throw new Exception("unexpected operand: " + accumulatedOperand);
+            }
 
-    private boolean isNumber(char c) {
-        int charIndex = Character.getNumericValue(c);
+            ExpressionToken operandToken = new ExpressionToken(tokenSymbol, accumulatedOperand, doOperandNegation);
 
-        return charIndex >= LOCALE_NUMBER_ZERO_INDEX && charIndex <= LOCALE_NUMBER_NINE_INDEX;
-    }
+            isAccumFlushed = true;
+            doOperandNegation = false;
+            
+            return operandToken;
+        }
+        
+        public ExpressionToken popOperationToken() {
+            ExpressionToken opToken = new ExpressionToken(operationChar, String.valueOf(operationChar), false);
+            
+            operationChar = TOKEN_SYMBOL_NULL;
+            isOperandExpected = false;
+            isOperandExpectedPositiveOnly = false;
+            
+            return opToken;
+        }
+        
+        private boolean isDigit(String s) {
+            Pattern digitPattern = Pattern.compile("^[0-9]+(\\.[0-9]+)?$");
+            return digitPattern.matcher(s).matches();
+        }
+        
+        private boolean isReference(String s) {
+            Pattern refPattern = Pattern.compile("^[A-Z]+[0-9]+$");
+            return refPattern.matcher(s).matches();
+        }
 
-    private boolean isOperation(char c) {
-        return c == '+' || c == '-' || c == '*' || c == '/';
+        private boolean isOperation(char c) {
+            return c == '+' || c == '-' || c == '*' || c == '/';
+        }
+        
+        public boolean isProperlyFinalized() {
+            return isAccumFlushed && operationChar != TOKEN_SYMBOL_NULL;
+        }
     }
 
     class ExpressionToken {
         public char symbol;
         public String content;
+        public boolean negative;
 
-        public ExpressionToken(char tokenSymbol, String tokenContent) {
+        public ExpressionToken(char tokenSymbol, String tokenContent, boolean doNegation) {
             symbol = tokenSymbol;
             content = tokenContent;
+            negative = doNegation;
         }
     }
 }
