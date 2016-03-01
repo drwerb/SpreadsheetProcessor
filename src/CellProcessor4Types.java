@@ -1,13 +1,22 @@
 import java.util.HashMap;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 public class CellProcessor4Types extends CellProcessor {
 
     private HashMap<String,DataTypeProcessor> dataTypeProcessorMap;
+    private DecimalFormat floatFormat;
+    private DecimalFormat integerFormat;
 
     public CellProcessor4Types(Spreadsheet tragetSpreadsheet) {
         super(tragetSpreadsheet);
+        DecimalFormatSymbols dfSymbols = new DecimalFormatSymbols(Locale.getDefault());
+        dfSymbols.setDecimalSeparator('.');
+        floatFormat = new DecimalFormat("0.0#", dfSymbols);
+        integerFormat = new DecimalFormat("0");
     }
 
     protected void initDataTypeProcessorMap() {
@@ -23,7 +32,8 @@ public class CellProcessor4Types extends CellProcessor {
     }
 
     public void computeDependantData() {
-	cellDependancyManager.makeTopologicalSort();
+	    cellDependancyManager.makeTopologicalSort();
+	    cellDependancyManager.setCycledCells(spreadsheet);
     }
 
     public DataTypeProcessor selectDataType(SpreadsheetCell cell) {
@@ -128,22 +138,30 @@ public class CellProcessor4Types extends CellProcessor {
 
             double evaluatedValue;
 
+            CellDependancyManager cellDependancyManager = cellProcessor.getCellDependancyManager();
+
+            if (!cellDependancyManager.isCellEvaluatedByReference(meta.numericReference)) {
+                try {
+                    meta.evaluatedValue = meta.evaluator.evaluate((Spreadsheet)spreadsheet);
+                }
+                catch (NumberFormatException e) {
+                    meta.setErrorText(e.getMessage());
+                }
+                finally {
+                    cellDependancyManager.markReferenceAsEvaluated(meta.numericReference);
+                }
+            }
+
             if (meta.hasError()) {
                 return "#" + meta.getErrorText();
             }
-
-            CellDependancyManager cellDependancyManager = cellProcessor.getCellDependancyManager();
-
-            if (cellDependancyManager.isCellEvaluatedByReference(meta.numericReference)) {
-                evaluatedValue = meta.evaluatedValue;
+            
+            if (meta.evaluatedValue % 1 == 0) {
+                return integerFormat.format(meta.evaluatedValue);
             }
             else {
-                evaluatedValue = meta.evaluator.evaluate((Spreadsheet)spreadsheet);
-                meta.evaluatedValue = evaluatedValue;
-                cellDependancyManager.markReferenceAsEvaluated(meta.numericReference);
+                return floatFormat.format(meta.evaluatedValue);
             }
-
-            return String.valueOf(evaluatedValue);
         }
 
         private class CellMetadataExpression extends CellMetadata {

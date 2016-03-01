@@ -1,5 +1,6 @@
 import java.lang.StringBuilder;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ExpressionEvaluatorAlgebraicSimple {
     private static final char TOKEN_SYMBOL_NUMBER = 'N';
@@ -18,7 +19,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
     private CellExpression ast = null;
     private CellDependancyManager dependancyManager;
     private String expressionHolderReference;
-
+ 
     public ExpressionEvaluatorAlgebraicSimple(CellDependancyManager depMngr, String expressionHolderRef) {
         dependancyManager = depMngr;
         expressionHolderReference = expressionHolderRef;
@@ -71,7 +72,9 @@ public class ExpressionEvaluatorAlgebraicSimple {
     public void registerDependencies(ArrayList<ExpressionToken> tokens) {
         for (ExpressionToken token : tokens) {
             if (token.symbol == TOKEN_SYMBOL_REF) {
-                dependancyManager.addDependancy(expressionHolderReference, CellInfoUtils.convertReferenceToNumericForm(token.content));
+                String referenceNumericForm = CellInfoUtils.convertReferenceToNumericForm(token.content);
+                dependancyManager.addReferenceTranslation(referenceNumericForm, token.content);
+                dependancyManager.addDependancy(expressionHolderReference, referenceNumericForm);
             }
         }
     }

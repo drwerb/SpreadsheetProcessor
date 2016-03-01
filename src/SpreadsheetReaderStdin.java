@@ -2,7 +2,6 @@ import java.io.*;
 import java.util.Scanner;
 
 class SpreadsheetReaderStdin implements SpreadsheetReader {
-    // TODO: delegate input format to separate class
     private static String cellDelimeter = "\t";
 
     public void readAndFillSpreadsheet(Spreadsheet spreadsheet) {

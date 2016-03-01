@@ -14,6 +14,11 @@ public class CellExpressionReference extends CellExpression {
                 CellInfoUtils.getReferencedColumnIndex(reference)
             );
 
-        return Double.parseDouble(data);
+        try {
+            return Double.parseDouble(data);
+        }
+        catch (NumberFormatException e) {
+            throw new NumberFormatException("numeric format expected: " + reference);
+        }
     }
 }

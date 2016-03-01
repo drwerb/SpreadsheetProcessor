@@ -1,17 +1,22 @@
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Stack;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 class CellDependancyManager {
     protected DependancyGraph graph;
-    ConcurrentLinkedQueue<String> reverseOrderVertexes;
+    ConcurrentLinkedDeque<String> reverseOrderVertexes;
     HashSet<String> evaluatedReferences;
+    HashMap<String, String> cycledReferences;
+    private HashMap<String,String> translatedRefMap;
 
     public CellDependancyManager() {
         graph = new DependancyGraph();
         evaluatedReferences = new HashSet<String>();
+        cycledReferences = new HashMap<String, String>();
+        translatedRefMap = new HashMap<String,String>();
     }
 
     protected void addReferenceVertex(String reference) {
@@ -20,10 +25,10 @@ class CellDependancyManager {
         }
     }
 
-    public void addDependancy(String dependantRef, String dependantByRef) {
+    public synchronized void addDependancy(String dependantRef, String dependantByRef) {
         addReferenceVertex(dependantRef);
         addReferenceVertex(dependantByRef);
-        graph.addEdge(dependantRef, dependantByRef);
+        graph.addEdge(dependantByRef, dependantRef);
     }
 
     public void makeTopologicalSort() {
@@ -32,7 +37,7 @@ class CellDependancyManager {
         int processingStackHeight = 0;
         boolean markBlack;
 
-        reverseOrderVertexes = new ConcurrentLinkedQueue<String>();
+        reverseOrderVertexes = new ConcurrentLinkedDeque<String>();
 
         for (String vertexName: graph.getAllVertexNames()) {
             processingVertexes.push(vertexName);
@@ -43,13 +48,12 @@ class CellDependancyManager {
                 markBlack = false;
 
                 if (processingVertex.color == GraphVertex.V_COLOR_GRAY) {
-
                     if (processingVertex.stackPos == processingStackHeight) {
-                	markBlack = true;
+                        markBlack = true;
                     }
                     else {
-                	graph.isCycled = true;
-                	return;
+                        graph.isCycled = true;
+                        deepFirstWalkMarkCycled(processingVertex.name);
                     }
                 }
 
@@ -76,13 +80,45 @@ class CellDependancyManager {
             }
         }
     }
+    
+    private void deepFirstWalkMarkCycled(String headVertexName) {
+        Stack<String> processingVertexes = new Stack<String>();
+        GraphVertex processingVertex;
+        
+        processingVertexes.push(headVertexName);
+        
+        while (!processingVertexes.empty()){
+            processingVertex = graph.getVertex(processingVertexes.pop());
+            
+            if (processingVertex.color == GraphVertex.V_COLOR_BLACK) {
+                continue;
+            }
+            
+            processingVertex.color = GraphVertex.V_COLOR_BLACK;
+            markReferenceAsCycled(processingVertex.name, headVertexName);
+            markReferenceAsEvaluated(processingVertex.name);
+            
+            for (String nextVertexName : processingVertex.nextVertexes) {
+                processingVertexes.push(nextVertexName);
+            }
+        }
+            
+    }
 
+    public boolean isCellCycledByReference(String cellReference) {
+        return cycledReferences.containsKey(cellReference);
+    }
+
+    public void markReferenceAsCycled(String dependantReference, String dependantBy) {
+        cycledReferences.put(dependantReference, dependantBy);
+    }
+    
     public boolean isCellEvaluatedByReference(String cellReference) {
         return evaluatedReferences.contains(cellReference);
     }
 
     public void markReferenceAsEvaluated(String evaluatedReference) {
-        if (reverseOrderVertexes.peek() == evaluatedReference) reverseOrderVertexes.poll();
+        if (reverseOrderVertexes.peekLast() == evaluatedReference) reverseOrderVertexes.pollLast();
         evaluatedReferences.add(evaluatedReference);
     }
 
@@ -92,20 +128,41 @@ class CellDependancyManager {
 
         if (isCellEvaluatedByReference(targetReference)) return;
 
-        while (!reverseOrderVertexes.isEmpty() && reverseOrderVertexes.peek().equals(targetReference)) {
-        	evaluatedReference = reverseOrderVertexes.peek();
+        while (!reverseOrderVertexes.isEmpty() && !reverseOrderVertexes.peekLast().equals(targetReference)) {
+        	evaluatedReference = reverseOrderVertexes.peekLast();
             indexes = CellInfoUtils.converNumericFormToRowCol(evaluatedReference);
             String resultBuffer = spreadsheet.getCellComputedData(indexes[0], indexes[1]);
             markReferenceAsEvaluated(evaluatedReference);
         }
     }
+    
+    public void setCycledCells(Spreadsheet spreadsheet) {
+        int[] indexes;
+        String dependantByRef;
+        CellMetadata meta;
+        
+        for (String cycledReference : cycledReferences.keySet()) {
+            indexes = CellInfoUtils.converNumericFormToRowCol(cycledReference);
+            meta = spreadsheet.getCell(indexes[0], indexes[1]).getMetadata();
+            dependantByRef = cycledReferences.get(cycledReference);
+            meta.setErrorText("depends on cycled ref " + translateReference(dependantByRef));
+        }
+    }
+    
+    public String translateReference(String reference) {
+        return translatedRefMap.get(reference);
+    }
+    
+    public String addReferenceTranslation(String reference, String refTranslation) {
+        return translatedRefMap.put(reference, refTranslation);
+    }
 
     protected class DependancyGraph {
-        protected HashMap<String, GraphVertex> vertexes;
+        protected ConcurrentHashMap<String, GraphVertex> vertexes;
         public boolean isCycled;
 
         public DependancyGraph() {
-            vertexes = new HashMap<String, GraphVertex>();
+            vertexes = new ConcurrentHashMap<String, GraphVertex>();
             isCycled = false;
         }
 
@@ -149,7 +206,9 @@ class CellDependancyManager {
         }
 
         public void addNextVertex(String nextVertexName) {
-            nextVertexes.add(nextVertexName);
+            synchronized (this) {
+                nextVertexes.add(nextVertexName);
+            }
         }
     }
 }
