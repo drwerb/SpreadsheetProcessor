@@ -1,26 +1,15 @@
 import java.util.HashMap;
 
-class CellCollectionHashMap implements CellCollection {
+class CellCollectionHashMap extends CellCollection {
     HashMap<String, SpreadsheetCell> cells;
-    private int maxColumnIndex;
-    private int maxRowIndex;
+
 
     public CellCollectionHashMap() {
         cells = new HashMap<String,SpreadsheetCell>();
-        maxRowIndex = -1;
-        maxColumnIndex = -1;
     }
 
     public SpreadsheetCell getCell(int rowIndex, int columnIndex) {
         return cells.get(CellInfoUtils.getCellNumericReference(rowIndex, columnIndex));
-    }
-
-    public int getRowsCount() {
-        return maxRowIndex + 1;
-    }
-
-    public int getColumnsCount() {
-        return maxColumnIndex + 1;
     }
 
     public void putCellData(int rowIndex, int columnIndex, String cellData) {
@@ -33,14 +22,6 @@ class CellCollectionHashMap implements CellCollection {
         }
         else {
             cell.setData(cellData);
-        }
-
-        if (maxRowIndex < rowIndex) {
-            maxRowIndex = rowIndex;
-        }
-
-        if (maxColumnIndex < columnIndex) {
-            maxColumnIndex = columnIndex;
         }
     }
 }

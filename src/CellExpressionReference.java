@@ -1,11 +1,10 @@
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
 public class CellExpressionReference extends CellExpression {
     protected String reference;
+    protected int multiplier;
 
-    public CellExpressionReference(String cellReference) {
+    public CellExpressionReference(String cellReference, boolean doNegation) {
         reference = cellReference;
+        multiplier = doNegation ? -1 : 1;
     }
 
     public double evaluate(Spreadsheet context) {
@@ -15,7 +14,7 @@ public class CellExpressionReference extends CellExpression {
             );
 
         try {
-            return Double.parseDouble(data);
+            return Double.parseDouble(data) * multiplier;
         }
         catch (NumberFormatException e) {
             throw new NumberFormatException("numeric format expected: " + reference);

@@ -1,6 +1,4 @@
-interface CellCollection {
-    public SpreadsheetCell getCell(int rowIndex, int columnIndex);
-    public int getRowsCount();
-    public int getColumnsCount();
-    public void putCellData(int rowIndex, int columnIndex, String cellData);
+public abstract class CellCollection {
+    public abstract SpreadsheetCell getCell(int rowIndex, int columnIndex);
+    public abstract void putCellData(int rowIndex, int columnIndex, String cellData);
 }

@@ -1,9 +1,8 @@
 import java.util.HashMap;
-import java.text.NumberFormat;
-import java.text.ParsePosition;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public class CellProcessor4Types extends CellProcessor {
 
@@ -100,6 +99,7 @@ public class CellProcessor4Types extends CellProcessor {
 
         public String getCellComputedData(SpreadsheetCell cell) {
             CellMetadata meta = cell.getMetadata();
+            
             if (meta.hasError()) {
                 return "#" + meta.getErrorText();
             }
@@ -108,10 +108,9 @@ public class CellProcessor4Types extends CellProcessor {
         }
 
         private boolean isValidData(String data) {
-            NumberFormat formatter = NumberFormat.getInstance();
-            ParsePosition pos = new ParsePosition(0);
-            formatter.parse(data, pos);
-            return data.length() == pos.getIndex();
+            Pattern digitPattern = Pattern.compile("\\A-?\\d+(?:\\.\\d+)?\\Z");
+
+            return digitPattern.matcher(data).matches();
         }
     }
 
@@ -135,8 +134,6 @@ public class CellProcessor4Types extends CellProcessor {
 
         public String getCellComputedData(SpreadsheetCell cell) {
             CellMetadataExpression meta = (CellMetadataExpression)cell.getMetadata();
-
-            double evaluatedValue;
 
             CellDependancyManager cellDependancyManager = cellProcessor.getCellDependancyManager();
 

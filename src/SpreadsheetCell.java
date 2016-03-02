@@ -1,6 +1,5 @@
 class SpreadsheetCell {
     private String data;
-    private CellProcessor displayData;
     private CellMetadata meta;
 
     public SpreadsheetCell(String cellData) {
@@ -13,10 +12,6 @@ class SpreadsheetCell {
 
     public void setData(String cellData) {
         data = cellData;
-    }
-
-    public String getComputedData() {
-        return data;
     }
 
     public void setMetadata(CellMetadata cellMetadata) {

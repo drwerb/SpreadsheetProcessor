@@ -1,7 +1,5 @@
 import java.lang.StringBuilder;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.regex.Pattern;
 
 public class ExpressionEvaluatorAlgebraicSimple {
@@ -12,12 +10,6 @@ public class ExpressionEvaluatorAlgebraicSimple {
     private static final char TOKEN_SYMBOL_MUL = '*';
     private static final char TOKEN_SYMBOL_DIV = '/';
     private static final char TOKEN_SYMBOL_NULL = '0';
-
-    private static final int LOCALE_BIG_A_INDEX = Character.getNumericValue('A');
-    private static final int LOCALE_BIG_Z_INDEX = Character.getNumericValue('Z');
-
-    private static final int LOCALE_NUMBER_ZERO_INDEX = Character.getNumericValue('0');
-    private static final int LOCALE_NUMBER_NINE_INDEX = Character.getNumericValue('9');
 
     private CellExpression ast = null;
     private CellDependancyManager dependancyManager;
@@ -39,6 +31,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
         registerDependencies(tokens);
     }
 
+    @SuppressWarnings("unchecked")
     public void buildAst(ArrayList<ExpressionToken> tokens) throws Exception {
         CellExpression tmpCellExprOperand;
         ExpressionToken token;
@@ -77,7 +70,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
             if (token.symbol == TOKEN_SYMBOL_REF) {
                 String referenceNumericForm = CellInfoUtils.convertReferenceToNumericForm(token.content);
                 dependancyManager.addReferenceTranslation(referenceNumericForm, token.content);
-                dependancyManager.addDependancy(expressionHolderReference, referenceNumericForm);
+                dependancyManager.registerDependancy(expressionHolderReference, referenceNumericForm);
             }
         }
     }
@@ -87,10 +80,10 @@ public class ExpressionEvaluatorAlgebraicSimple {
 
         switch (token.symbol) {
             case TOKEN_SYMBOL_NUMBER:
-                operand = (CellExpression) new CellExpressionConstant(Double.parseDouble(token.content));
+                operand = (CellExpression) new CellExpressionConstant(Double.parseDouble(token.content) * (token.negative ? -1 : 1));
                 break;
             case TOKEN_SYMBOL_REF:
-                operand = (CellExpression) new CellExpressionReference(token.content);
+                operand = (CellExpression) new CellExpressionReference(token.content, token.negative);
                 break;
             default:
                 throw(new Exception("Unexpected token symbol"));
@@ -106,21 +99,14 @@ public class ExpressionEvaluatorAlgebraicSimple {
         TokenParseState tokenParseState = new TokenParseState();
 
         for (int i = 0; i<=lastExprIndex; i++) {
-            tokenParseState.processChar(expr.charAt(i));
+            tokenParseState.appendChar(expr.charAt(i));
             
-            while (tokenParseState.isTokenReady()) {
+            while (tokenParseState.areTokensReady()) {
                 tokens.add(tokenParseState.popToken());
             }            
         }
         
-        // accumulated data post-processing
-        if (tokenParseState.isTokenReady()) {
-            tokens.add(tokenParseState.popToken());
-        }
-        
-        if (!tokenParseState.isProperlyFinalized()) {
-            throw new Exception("unexpected epression ending");
-        }
+        tokens.add(tokenParseState.popToken());
         
         return tokens;
     }
@@ -128,7 +114,6 @@ public class ExpressionEvaluatorAlgebraicSimple {
     
     class TokenParseState {
         StringBuilder accum;
-        boolean isOperandExpected = true;
         boolean isOperandExpectedPositiveOnly = false;
         boolean doOperandNegation = false;
         boolean isAccumFlushed = false;
@@ -136,7 +121,6 @@ public class ExpressionEvaluatorAlgebraicSimple {
         
         public TokenParseState() {
             isAccumFlushed = true;
-            isOperandExpected = true;
             isOperandExpectedPositiveOnly = false;
             doOperandNegation = false;
             operationChar = TOKEN_SYMBOL_NULL;
@@ -161,11 +145,11 @@ public class ExpressionEvaluatorAlgebraicSimple {
         }
 
         public void processOperation(char currChar) throws Exception {
-            if (currChar == '-' && isOperandExpectedPositiveOnly && isAccumFlushed ) {
+            if (currChar == '-' && isOperandExpectedPositiveOnly) {
                 throw new Exception("unexpected 'minus'");
             }
             
-            if (currChar == '-' && isOperandExpected && isAccumFlushed) {
+            if (currChar == '-' && isAccumFlushed) {
                 doOperandNegation = true;
                 isOperandExpectedPositiveOnly = true;
             }
@@ -175,30 +159,14 @@ public class ExpressionEvaluatorAlgebraicSimple {
                 }
                 
                 operationChar = currChar;
-                isOperandExpected = true;
-                
-                if (currChar == '+' || currChar == '-') {
-                    isOperandExpectedPositiveOnly = true;
-                }
+                isOperandExpectedPositiveOnly = (currChar == '+' || currChar == '-');
             }
         }
         
-        public boolean isTokenReady() {
-             return isAccumedLastOperand() || isAccumedOperandBeforeOperation() || isOperationSymbolUnpoped();
+        private boolean areTokensReady() {
+            return operationChar != TOKEN_SYMBOL_NULL;
         }
-        
-        private boolean isAccumedLastOperand() {
-            return !isAccumFlushed && accum.length() != 0 && !isOperandExpected;
-        }
-        
-        private boolean isAccumedOperandBeforeOperation() {
-            return !isAccumFlushed && accum.length() != 0 && operationChar != TOKEN_SYMBOL_NULL;
-        }
-        
-        private boolean isOperationSymbolUnpoped() {
-            return isAccumFlushed && operationChar != TOKEN_SYMBOL_NULL;
-        }
-        
+
         public ExpressionToken popToken() throws Exception {
             if (!isAccumFlushed) {
                 return popOperandToken();
@@ -229,32 +197,30 @@ public class ExpressionEvaluatorAlgebraicSimple {
             return operandToken;
         }
         
-        public ExpressionToken popOperationToken() {
+        public ExpressionToken popOperationToken() throws Exception {
+            if (operationChar == TOKEN_SYMBOL_NULL) {
+                throw new Exception("incorrect exprression");
+            }
+            
             ExpressionToken opToken = new ExpressionToken(operationChar, String.valueOf(operationChar), false);
             
             operationChar = TOKEN_SYMBOL_NULL;
-            isOperandExpected = false;
-            isOperandExpectedPositiveOnly = false;
             
             return opToken;
         }
         
         private boolean isDigit(String s) {
-            Pattern digitPattern = Pattern.compile("^[0-9]+(\\.[0-9]+)?$");
+            Pattern digitPattern = Pattern.compile("\\A\\d+(?:\\.\\d+)?\\Z");
             return digitPattern.matcher(s).matches();
         }
         
         private boolean isReference(String s) {
-            Pattern refPattern = Pattern.compile("^[A-Z]+[0-9]+$");
+            Pattern refPattern = Pattern.compile("\\A[A-Z]+\\d+\\Z");
             return refPattern.matcher(s).matches();
         }
 
         private boolean isOperation(char c) {
             return c == '+' || c == '-' || c == '*' || c == '/';
-        }
-        
-        public boolean isProperlyFinalized() {
-            return isAccumFlushed && operationChar != TOKEN_SYMBOL_NULL;
         }
     }
 

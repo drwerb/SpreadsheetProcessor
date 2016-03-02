@@ -1,9 +1,9 @@
-import java.io.*;
 import java.util.Scanner;
 
 class SpreadsheetReaderStdin implements SpreadsheetReader {
     private static String cellDelimeter = "\t";
 
+    @SuppressWarnings("resource")
     public void readAndFillSpreadsheet(Spreadsheet spreadsheet) {
         Scanner scanner = new Scanner(System.in).useDelimiter("\n");
         int rowIndex = -1;
