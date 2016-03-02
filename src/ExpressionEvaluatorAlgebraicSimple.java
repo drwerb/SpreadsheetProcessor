@@ -14,7 +14,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
     private CellExpression ast = null;
     private CellDependancyManager dependancyManager;
     private String expressionHolderReference;
- 
+
     public ExpressionEvaluatorAlgebraicSimple(CellDependancyManager depMngr, String expressionHolderRef) {
         dependancyManager = depMngr;
         expressionHolderReference = expressionHolderRef;
@@ -35,7 +35,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
     public void buildAst(ArrayList<ExpressionToken> tokens) throws Exception {
         CellExpression tmpCellExprOperand;
         ExpressionToken token;
-        
+
         ArrayList<ExpressionToken> tokensCopy = (ArrayList<ExpressionToken>) tokens.clone();
 
         while (!tokensCopy.isEmpty()) {
@@ -100,32 +100,31 @@ public class ExpressionEvaluatorAlgebraicSimple {
 
         for (int i = 0; i<=lastExprIndex; i++) {
             tokenParseState.appendChar(expr.charAt(i));
-            
+
             while (tokenParseState.areTokensReady()) {
                 tokens.add(tokenParseState.popToken());
             }            
         }
-        
+
         tokens.add(tokenParseState.popToken());
-        
+
         return tokens;
     }
 
-    
     class TokenParseState {
         StringBuilder accum;
         boolean isOperandExpectedPositiveOnly = false;
         boolean doOperandNegation = false;
         boolean isAccumFlushed = false;
         char operationChar;
-        
+
         public TokenParseState() {
             isAccumFlushed = true;
             isOperandExpectedPositiveOnly = false;
             doOperandNegation = false;
             operationChar = TOKEN_SYMBOL_NULL;
         }
-        
+
         public void appendChar(char currChar) throws Exception {
             if (isOperation(currChar)) {
                 processOperation(currChar);
@@ -134,13 +133,13 @@ public class ExpressionEvaluatorAlgebraicSimple {
                 processChar(currChar);
             }
         }
-        
+
         public void processChar(char currChar) throws Exception {
             if (isAccumFlushed) {
                 accum = new StringBuilder("");
                 isAccumFlushed = false;
             }
-            
+
             accum.append(currChar);
         }
 
@@ -148,7 +147,7 @@ public class ExpressionEvaluatorAlgebraicSimple {
             if (currChar == '-' && isOperandExpectedPositiveOnly) {
                 throw new Exception("unexpected 'minus'");
             }
-            
+
             if (currChar == '-' && isAccumFlushed) {
                 doOperandNegation = true;
                 isOperandExpectedPositiveOnly = true;
@@ -157,12 +156,12 @@ public class ExpressionEvaluatorAlgebraicSimple {
                 if (operationChar != TOKEN_SYMBOL_NULL) {
                     throw new Exception("unexpected operator");
                 }
-                
+
                 operationChar = currChar;
                 isOperandExpectedPositiveOnly = (currChar == '+' || currChar == '-');
             }
         }
-        
+
         private boolean areTokensReady() {
             return operationChar != TOKEN_SYMBOL_NULL;
         }
@@ -171,14 +170,14 @@ public class ExpressionEvaluatorAlgebraicSimple {
             if (!isAccumFlushed) {
                 return popOperandToken();
             }
-            
+
             return popOperationToken();
         }
-        
+
         public ExpressionToken popOperandToken() throws Exception {
             String accumulatedOperand = accum.toString();
             char tokenSymbol;
-            
+
             if (isDigit(accumulatedOperand)) {
                 tokenSymbol = TOKEN_SYMBOL_NUMBER;
             }
@@ -193,27 +192,27 @@ public class ExpressionEvaluatorAlgebraicSimple {
 
             isAccumFlushed = true;
             doOperandNegation = false;
-            
+
             return operandToken;
         }
-        
+
         public ExpressionToken popOperationToken() throws Exception {
             if (operationChar == TOKEN_SYMBOL_NULL) {
                 throw new Exception("incorrect exprression");
             }
-            
+
             ExpressionToken opToken = new ExpressionToken(operationChar, String.valueOf(operationChar), false);
-            
+
             operationChar = TOKEN_SYMBOL_NULL;
-            
+
             return opToken;
         }
-        
+
         private boolean isDigit(String s) {
             Pattern digitPattern = Pattern.compile("\\A\\d+(?:\\.\\d+)?\\Z");
             return digitPattern.matcher(s).matches();
         }
-        
+
         private boolean isReference(String s) {
             Pattern refPattern = Pattern.compile("\\A[A-Z]+\\d+\\Z");
             return refPattern.matcher(s).matches();

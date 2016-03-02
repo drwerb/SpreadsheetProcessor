@@ -1,7 +1,7 @@
 public abstract class Spreadsheet {
     protected CellCollection cells;
     protected CellProcessor cellProcessor;
-    
+
     protected int maxColumnIndex;
     protected int maxRowIndex;
 

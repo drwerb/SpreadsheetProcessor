@@ -56,7 +56,7 @@ public class CellProcessor4Types extends CellProcessor {
 
         return selectedProcessor;
     }
-    
+
     private class FourTypesNullProcessor extends DataTypeProcessor {
         public FourTypesNullProcessor(CellProcessor cellProcessor) {
             super((CellProcessor) cellProcessor);
@@ -99,7 +99,7 @@ public class CellProcessor4Types extends CellProcessor {
 
         public String getCellComputedData(SpreadsheetCell cell) {
             CellMetadata meta = cell.getMetadata();
-            
+
             if (meta.hasError()) {
                 return "#" + meta.getErrorText();
             }
@@ -152,7 +152,7 @@ public class CellProcessor4Types extends CellProcessor {
             if (meta.hasError()) {
                 return "#" + meta.getErrorText();
             }
-            
+
             if (meta.evaluatedValue % 1 == 0) {
                 return integerFormat.format(meta.evaluatedValue);
             }

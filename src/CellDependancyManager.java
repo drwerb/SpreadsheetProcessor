@@ -62,7 +62,7 @@ class CellDependancyManager {
                     processingStackHeight--;
                     continue;
                 }
-                
+
                 if (processingVertex.nextVertexes.isEmpty() || markBlack) {
                     processingVertex.color = GraphVertex.V_COLOR_BLACK;
                     evalOrderedReferences.add(processingVertexes.pop());
@@ -80,29 +80,29 @@ class CellDependancyManager {
             }
         }
     }
-    
+
     private void deepFirstWalkMarkCycled(String headVertexName) {
         Stack<String> processingVertexes = new Stack<String>();
         GraphVertex processingVertex;
-        
+
         processingVertexes.push(headVertexName);
-        
+
         while (!processingVertexes.empty()){
             processingVertex = graph.getVertex(processingVertexes.pop());
-            
+
             if (processingVertex.color == GraphVertex.V_COLOR_BLACK) {
                 continue;
             }
-            
+
             processingVertex.color = GraphVertex.V_COLOR_BLACK;
             markReferenceAsCycled(processingVertex.name, headVertexName);
             markReferenceAsEvaluated(processingVertex.name);
-            
+
             for (String nextVertexName : processingVertex.nextVertexes) {
                 processingVertexes.push(nextVertexName);
             }
         }
-            
+
     }
 
     public boolean isCellCycledByReference(String cellReference) {
@@ -112,7 +112,7 @@ class CellDependancyManager {
     public void markReferenceAsCycled(String dependantReference, String dependantBy) {
         cycledReferences.put(dependantReference, dependantBy);
     }
-    
+
     public boolean isCellEvaluatedByReference(String cellReference) {
         return evaluatedReferences.contains(cellReference);
     }
@@ -135,12 +135,12 @@ class CellDependancyManager {
             markReferenceAsEvaluated(evaluatedReference);
         }
     }
-    
+
     public void setCycledCells(Spreadsheet spreadsheet) {
         int[] indexes;
         String dependantByRef;
         CellMetadata meta;
-        
+
         for (String cycledReference : cycledReferences.keySet()) {
             indexes = CellInfoUtils.converNumericFormToRowCol(cycledReference);
             meta = spreadsheet.getCell(indexes[0], indexes[1]).getMetadata();
@@ -148,11 +148,11 @@ class CellDependancyManager {
             meta.setErrorText("depends on cycled ref " + translateReference(dependantByRef));
         }
     }
-    
+
     public String translateReference(String reference) {
         return translatedRefMap.get(reference);
     }
-    
+
     public String addReferenceTranslation(String reference, String refTranslation) {
         return translatedRefMap.put(reference, refTranslation);
     }

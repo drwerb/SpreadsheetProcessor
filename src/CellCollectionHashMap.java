@@ -3,7 +3,6 @@ import java.util.HashMap;
 class CellCollectionHashMap extends CellCollection {
     HashMap<String, SpreadsheetCell> cells;
 
-
     public CellCollectionHashMap() {
         cells = new HashMap<String,SpreadsheetCell>();
     }

@@ -6,7 +6,7 @@ public abstract class CellProcessor {
     protected CellDependancyManager cellDependancyManager;
     private ArrayBlockingQueue<CellPosition> processingCellsShared;
     private ArrayList<Thread> workers;
-    
+
     final int WORKERS_NUMBER = 2;
 
     protected abstract void initCellDependancyManager();
@@ -36,7 +36,7 @@ public abstract class CellProcessor {
         stopProcessorWorkers();
         computeDependantData();
     }
-    
+
     private void startProcessorWorkers() {
         workers = new ArrayList<Thread>();
         processingCellsShared = new ArrayBlockingQueue<CellPosition>(WORKERS_NUMBER);
@@ -48,11 +48,11 @@ public abstract class CellProcessor {
             worker.start();
         }
     }
-    
+
     private boolean hasAliveWorkers() {
         return processingCellsShared.peek() != null;
     }
-    
+
     private void stopProcessorWorkers() {
         for (int i = 0; i < WORKERS_NUMBER; i++) {
             try {
@@ -62,7 +62,7 @@ public abstract class CellProcessor {
                 System.exit(1);
             }
         }
-        
+
         while (hasAliveWorkers()) {
         }
     }
@@ -97,7 +97,7 @@ public abstract class CellProcessor {
 
     protected class CellProcessorWalker extends SpreadsheetRowByRowCellWalker {
         protected CellProcessor processor;
-        
+
         public CellProcessorWalker(CellProcessor cellProcessor) {
             super(cellProcessor.getSpreadsheet());
             processor = cellProcessor;
@@ -107,26 +107,26 @@ public abstract class CellProcessor {
             processor.processCell(rowIndex, columnIndex);
         }
     }
-    
+
     public class CellPosition {
         public int rowIndex;
         public int columnIndex;
-        
+
         public CellPosition(int row, int column) {
             rowIndex = row;
             columnIndex = column;
         }
     }
-    
+
     public class ProcessorWorker implements Runnable {
         private ArrayBlockingQueue<CellPosition> processingCellsShared;
         final private CellProcessor processor;
-        
+
         public ProcessorWorker(ArrayBlockingQueue<CellPosition> processingCells, CellProcessor p) {
             processingCellsShared = processingCells;
             processor = p;
         }
-        
+
         public void run() {
             CellPosition cellPos = null;
             while (true) {
@@ -135,11 +135,11 @@ public abstract class CellProcessor {
                 }
                 catch (InterruptedException e) {
                 }
-                
+
                 if (cellPos.rowIndex == -1) {
                     break;
                 }
-                
+
                 SpreadsheetCell cell = processor.getSpreadsheet().getCell(cellPos.rowIndex, cellPos.columnIndex);
                 DataTypeProcessor dataTypeProcessor = processor.selectDataType(cell);
                 dataTypeProcessor.processCellData(cell, cellPos.rowIndex, cellPos.columnIndex);
