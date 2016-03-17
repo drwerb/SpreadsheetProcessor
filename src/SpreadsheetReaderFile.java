@@ -28,7 +28,7 @@ class SpreadsheetReaderFile implements SpreadsheetReader {
                 }
     	}
     	catch (FileNotFoundException ex) {
-    	    System.err.println("Spreadsheet file not found");
+    	    System.err.println("Spreadsheet file not found.");
     	}
     }
 }
